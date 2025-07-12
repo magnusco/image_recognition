@@ -245,7 +245,7 @@ class NeuralNetwork:
         dJ_dK = np.zeros((self.M, 4, 4))
         U = dJ_dY
         for i in range(1, self.M):
-            dJ_dK[self.M - i] = h*np.matmul(np.transpose(self.Y[self.M-i]),
+            dJ_dK[self.M - i] = self.h*np.matmul(np.transpose(self.Y[self.M-i]),
                                             np.multiply(self.sigma_der(self.Y[self.M-i]@self.K[self.M-i]),U))
             U = U + self.h * np.matmul(np.multiply(self.sigma_der(np.matmul(self.Y[self.M - i], self.K[self.M - i])), U),
                                        np.transpose(self.K[self.M - i]))
@@ -309,3 +309,33 @@ class NeuralNetwork:
         with open('weights.pkl', 'rb') as f:
             self.K, self.W = pickle.load(f)
         return 0
+
+    def plot_decision_boundary(self, test_points, filename="media/decision_boundary.png"):
+         
+        Y0, C = self.set_data(test_points)
+        
+        x_min, x_max = Y0[:, 0].min() - 0.1, Y0[:, 0].max() + 0.1
+        y_min, y_max = Y0[:, 1].min() - 0.1, Y0[:, 1].max() + 0.1
+        xx, yy = np.meshgrid(np.linspace(x_min, x_max, 100),
+                             np.linspace(y_min, y_max, 100))
+        
+        grid_points = np.c_[xx.ravel(), yy.ravel()]
+        grid_features = np.concatenate((grid_points, grid_points**2), axis=1)
+        
+
+        self.Y = np.zeros((self.M + 1, len(grid_features), 4))
+
+        Z = self.eta(np.matmul(self.euler(grid_features, self.K), self.W))
+        Z = Z.reshape(xx.shape)
+        
+        plt.figure(figsize=(8, 8))
+        plt.contourf(xx, yy, Z, cmap=plt.cm.RdBu, alpha=0.5)
+        plt.scatter(Y0[C==0, 0], Y0[C==0, 1], c='red', edgecolors='k', label='Class 0')
+        plt.scatter(Y0[C==1, 0], Y0[C==1, 1], c='blue', edgecolors='k', label='Class 1')
+        plt.title("Learned Decision Boundary")
+        plt.xlabel("x1")
+        plt.ylabel("x2")
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.savefig(filename)
+        print(f"Decision boundary plot saved to {filename}")
